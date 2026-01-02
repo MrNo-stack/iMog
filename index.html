@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>iMog: Financial Face-Off</title>
+    <!-- Dependencies -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --mogger-neon: #ff00ff;
+            --soyboy-neon: #00ffff;
+            --arcade-yellow: #ffff00;
+            --arcade-red: #ff0000;
+        }
+        body {
+            background: radial-gradient(circle at center, #1a0b2e 0%, #0d0221 100%);
+            color: #fff;
+            font-family: 'Press Start 2P', cursive;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        .crt-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 4px, 3px 100%;
+            pointer-events: none;
+            z-index: 100;
+        }
+        .panel {
+            background: #111;
+            border: 6px solid #444;
+            box-shadow: 10px 10px 0px #000;
+        }
+        .mogger-panel { border-color: var(--mogger-neon); }
+        .soyboy-panel { border-color: var(--soyboy-neon); }
+        .character-box {
+            height: 200px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            background: linear-gradient(to bottom, #222, #444);
+            border-bottom: 4px solid #fff;
+        }
+        input, select {
+            background: #000;
+            border: 3px solid #777;
+            color: #0f0;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 14px;
+            padding: 10px;
+            width: 100%;
+            outline: none;
+        }
+        input:focus {
+            border-color: var(--arcade-yellow);
+        }
+        input:disabled {
+            color: #555;
+            border-color: #333;
+        }
+        .vs-logo {
+            font-size: 40px;
+            color: #ff0000;
+            text-shadow: 3px 3px 0 #ffff00, 6px 6px 0 #000;
+            transform: rotate(-10deg);
+        }
+        .win-pose { animation: bounce 0.5s infinite alternate; }
+        .ko-pose { transform: rotate(90deg) translateY(30px); opacity: 0.7; }
+        @keyframes bounce { from { transform: translateY(0); } to { transform: translateY(-10px); } }
+    </style>
+</head>
+<body class="p-4 md:p-10">
+    <div class="crt-overlay"></div>
+    
+    <div class="max-w-7xl mx-auto relative z-10">
+        <!-- HUD -->
+        <div class="flex justify-between items-center bg-black border-[6px] border-[#555] p-3 mb-10 shadow-[inset_0_0_15px_#000]">
+            <div class="w-2/5">
+                <div class="h-8 w-full bg-[#333] border-4 border-white overflow-hidden">
+                    <div id="mogger-health" class="h-full bg-gradient-to-b from-yellow-400 to-orange-500 transition-all duration-500" style="width: 100%;"></div>
+                </div>
+                <span class="text-pink-500 text-[10px]">P1: MOGGER</span>
+            </div>
+            <div class="vs-logo">VS</div>
+            <div class="w-2/5 text-right">
+                <div class="h-8 w-full bg-[#333] border-4 border-white overflow-hidden">
+                    <div id="soyboy-health" class="h-full bg-gradient-to-b from-yellow-400 to-orange-500 transition-all duration-500 float-right" style="width: 100%;"></div>
+                </div>
+                <span class="text-cyan-400 text-[10px]">P2: SOYBOY</span>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            <!-- MOGGER PANEL -->
+            <div class="panel mogger-panel p-5">
+                <div class="character-box mb-4" id="mogger-box"></div>
+                <h2 class="text-center text-pink-500 mb-4 text-xs">MOGGER (NO DOWN PAYMENT)</h2>
+                <div class="grid grid-cols-1 gap-4 text-[8px]">
+                    <label>PROPERTY COST</label>
+                    <input type="number" id="propCost" value="450000">
+                    <label>INITIAL INVESTMENT (LUMP SUM)</label>
+                    <input type="number" id="initialInvestMogger" value="90000" disabled>
+                    <label>LOAN RATE %</label>
+                    <input type="number" id="interestRate" step="0.1" value="6.8">
+                    <label>LOAN TERM (YEARS)</label>
+                    <input type="number" id="loanTermMogger" value="30">
+                    <label>INVESTMENT RETURN %</label>
+                    <input type="number" id="investReturn" value="9">
+                    <label>PROPERTY GROWTH %</label>
+                    <input type="number" id="growthRateMogger" step="0.1" value="3.5">
+                    <label>TIME HORIZON (YEARS)</label>
+                    <input type="number" id="timeHorizon" value="20">
+                </div>
+            </div>
+
+            <!-- SOYBOY PANEL -->
+            <div class="panel soyboy-panel p-5">
+                <div class="character-box mb-4" id="soyboy-box"></div>
+                <h2 class="text-center text-cyan-400 mb-4 text-xs">SOYBOY (W/ DOWN PAYMENT)</h2>
+                <div class="grid grid-cols-1 gap-4 text-[8px]">
+                    <label>PROPERTY COST</label>
+                    <input type="number" id="propCostSoy" value="450000">
+                    <label>DOWN PAYMENT AMOUNT</label>
+                    <input type="number" id="downPayment" value="90000">
+                    <label>MONTHLY INVESTMENT (MORTGAGE DIFF)</label>
+                    <input type="number" id="monthlyInvestSoyboy" value="0" disabled>
+                    <label>LOAN TERM (YEARS)</label>
+                    <input type="number" id="loanTermSoyboy" value="30">
+                    <label>PROPERTY GROWTH %</label>
+                    <input type="number" id="growthRateSoyboy" step="0.1" value="3.5">
+                    
+                    <div class="bg-black border-2 border-green-500 p-2 text-center mt-2">
+                        <div class="text-green-500 text-[7px] mb-1">MORTGAGE SAVINGS DIFF</div>
+                        <div id="monthly-diff" class="text-white text-sm">$0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- WINNER BANNER -->
+        <div class="bg-black border-[8px] border-yellow-400 p-6 text-center mt-10 shadow-[0_0_20px_rgba(255,255,0,0.3)]">
+            <div id="winner-text" class="text-3xl text-yellow-400 mb-4 [text-shadow:4px_4px_#f00]">CALCULATING...</div>
+            <div class="grid grid-cols-2 gap-4 text-[8px]">
+                <div>
+                    <div class="text-pink-500 mb-1">MOGGER NET WORTH</div>
+                    <div id="final-mogger" class="text-lg">$0</div>
+                </div>
+                <div>
+                    <div class="text-cyan-400 mb-1">SOYBOY NET WORTH</div>
+                    <div id="final-soyboy" class="text-lg">$0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CHART -->
+        <div class="mt-10 bg-black border-8 border-[#555] p-5">
+            <canvas id="mainChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        const getInputs = () => {
+            return {
+                propCost: parseFloat(document.getElementById('propCost').value) || 0,
+                interestRate: parseFloat(document.getElementById('interestRate').value) || 0,
+                loanTerm: parseFloat(document.getElementById('loanTermMogger').value) || 0,
+                growthRate: parseFloat(document.getElementById('growthRateMogger').value) || 0,
+                downPayment: parseFloat(document.getElementById('downPayment').value) || 0,
+                investReturn: parseFloat(document.getElementById('investReturn').value) || 0,
+                timeHorizon: parseFloat(document.getElementById('timeHorizon').value) || 0
+            };
+        };
+
+        // Sync inputs
+        document.getElementById('propCost').addEventListener('input', (e) => {
+            document.getElementById('propCostSoy').value = e.target.value;
+        });
+        document.getElementById('propCostSoy').addEventListener('input', (e) => {
+            document.getElementById('propCost').value = e.target.value;
+        });
+        document.getElementById('downPayment').addEventListener('input', (e) => {
+            document.getElementById('initialInvestMogger').value = e.target.value;
+        });
+        document.getElementById('growthRateMogger').addEventListener('input', (e) => {
+            document.getElementById('growthRateSoyboy').value = e.target.value;
+        });
+        document.getElementById('growthRateSoyboy').addEventListener('input', (e) => {
+            document.getElementById('growthRateMogger').value = e.target.value;
+        });
+        document.getElementById('loanTermMogger').addEventListener('input', (e) => {
+            document.getElementById('loanTermSoyboy').value = e.target.value;
+        });
+        document.getElementById('loanTermSoyboy').addEventListener('input', (e) => {
+            document.getElementById('loanTermMogger').value = e.target.value;
+        });
+
+        const calcMortgage = (p, r, y) => {
+            const mR = r / 100 / 12;
+            const n = y * 12;
+            if (mR === 0) return p / n;
+            return (p * mR * Math.pow(1 + mR, n)) / (Math.pow(1 + mR, n) - 1);
+        };
+
+        const renderSprites = (winner) => {
+            const moggerBox = document.getElementById('mogger-box');
+            const soyboyBox = document.getElementById('soyboy-box');
+            const moggerWin = winner === 'MOGGER';
+            const soyboyWin = winner === 'SOYBOY';
+
+            moggerBox.innerHTML = `
+                <svg viewBox="0 0 100 100" class="w-48 h-48 ${moggerWin ? 'win-pose' : 'ko-pose'}">
+                    <rect x="35" y="40" width="30" height="50" fill="#111" />
+                    <rect x="38" y="45" width="24" height="40" fill="#222" />
+                    <rect x="40" y="15" width="25" height="25" fill="#e0ac69" />
+                    <path d="M40 15 Q52 5 65 15 L65 25 Q52 20 40 25 Z" fill="#000" />
+                    ${moggerWin ? '<rect x="25" y="5" width="12" height="40" fill="#e0ac69" />' : '<rect x="65" y="45" width="25" height="12" fill="#e0ac69" />'}
+                    <rect x="85" y="42" width="10" height="18" fill="#e0ac69" />
+                </svg>`;
+            
+            soyboyBox.innerHTML = `
+                <svg viewBox="0 0 100 100" class="w-48 h-48 ${soyboyWin ? 'win-pose' : ''}" style="transform: ${soyboyWin ? 'scaleX(-1)' : 'rotate(-90deg) translateY(30px)'}">
+                    <rect x="35" y="40" width="35" height="50" fill="#fff" />
+                    <rect x="48" y="40" width="6" height="50" fill="#555" />
+                    <rect x="40" y="15" width="25" height="25" fill="#f3d2c1" />
+                    ${soyboyWin ? '<rect x="25" y="5" width="12" height="40" fill="#f3d2c1" />' : '<rect x="65" y="55" width="15" height="10" fill="#f3d2c1" />'}
+                    <rect x="42" y="24" width="21" height="6" fill="#000" />
+                </svg>`;
+        };
+
+        let myChart;
+        function update() {
+            const data = getInputs();
+            const mNoDP = calcMortgage(data.propCost, data.interestRate, data.loanTerm);
+            const mWithDP = calcMortgage(data.propCost - data.downPayment, data.interestRate, data.loanTerm);
+            const diffSavings = Math.max(0, mNoDP - mWithDP);
+            
+            document.getElementById('monthly-diff').innerText = `$${Math.round(diffSavings)}`;
+            document.getElementById('monthlyInvestSoyboy').value = Math.round(diffSavings);
+
+            const labels = [];
+            const valMogger = [];
+            const valSoyboy = [];
+            
+            // For tooltips
+            const breakdown = {
+                mogger: [],
+                soyboy: []
+            };
+
+            const rI = data.investReturn / 100;
+            const rP = data.growthRate / 100;
+
+            for (let t = 0; t <= data.timeHorizon; t++) {
+                labels.push(`YR ${t}`);
+                const propVal = data.propCost * Math.pow(1 + rP, t);
+                
+                // Mogger Logic
+                const invMogger = data.downPayment * Math.pow(1 + rI, t);
+                valMogger.push(Math.round(propVal + invMogger));
+                breakdown.mogger.push({ prop: propVal, inv: invMogger });
+
+                // Soyboy Logic
+                let invSoyboy = 0;
+                if (t > 0) {
+                    const mRate = rI / 12;
+                    invSoyboy = diffSavings * ((Math.pow(1 + mRate, t * 12) - 1) / mRate);
+                }
+                valSoyboy.push(Math.round(propVal + invSoyboy));
+                breakdown.soyboy.push({ prop: propVal, inv: invSoyboy });
+            }
+
+            const finalM = valMogger[valMogger.length - 1];
+            const finalS = valSoyboy[valSoyboy.length - 1];
+            const winner = finalM > finalS ? 'MOGGER' : 'SOYBOY';
+
+            document.getElementById('winner-text').innerText = `${winner} WINS!`;
+            document.getElementById('final-mogger').innerText = `$${finalM.toLocaleString()}`;
+            document.getElementById('final-soyboy').innerText = `$${finalS.toLocaleString()}`;
+            
+            const maxVal = Math.max(finalM, finalS);
+            document.getElementById('mogger-health').style.width = (finalM / maxVal * 100) + '%';
+            document.getElementById('soyboy-health').style.width = (finalS / maxVal * 100) + '%';
+
+            renderSprites(winner);
+
+            if (myChart) myChart.destroy();
+            const ctx = document.getElementById('mainChart').getContext('2d');
+            myChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'MOGGER', data: valMogger, borderColor: '#ff00ff', borderWidth: 4, fill: true, backgroundColor: 'rgba(255,0,255,0.1)', breakdown: breakdown.mogger },
+                        { label: 'SOYBOY', data: valSoyboy, borderColor: '#00ffff', borderWidth: 4, fill: true, backgroundColor: 'rgba(0,255,255,0.1)', breakdown: breakdown.soyboy }
+                    ]
+                },
+                options: {
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const b = context.dataset.breakdown[context.dataIndex];
+                                    return [
+                                        `TOTAL: $${context.parsed.y.toLocaleString()}`,
+                                        `🏠 PROP: $${Math.round(b.prop).toLocaleString()}`,
+                                        `📈 INV: $${Math.round(b.inv).toLocaleString()}`
+                                    ];
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: { grid: { color: '#333' }, ticks: { color: '#fff' } },
+                        x: { grid: { color: '#333' }, ticks: { color: '#fff' } }
+                    }
+                }
+            });
+        }
+
+        document.querySelectorAll('input').forEach(input => input.addEventListener('input', update));
+        update();
+    </script>
+</body>
+</html>
