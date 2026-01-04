@@ -1,3 +1,5 @@
+// TODO: Use a proper testing framework like Jest. This is super hacky.
+
 const assert = require('assert');
 const { calculateMonthlyMortgagePayment } = require('./calculator.js');
 
