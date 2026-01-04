@@ -1,0 +1,20 @@
+{
+  "name": "imog",
+  "version": "1.0.0",
+  "description": "Financial calculator: rent vs buy",
+  "homepage": "https://github.com/SheldonSandbekkhaug/iMog#readme",
+  "bugs": {
+    "url": "https://github.com/SheldonSandbekkhaug/iMog/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SheldonSandbekkhaug/iMog.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "calculator.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
